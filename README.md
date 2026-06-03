@@ -1,0 +1,1 @@
+log for tensor built in CUDA C++ similar to PyTorch tensor
