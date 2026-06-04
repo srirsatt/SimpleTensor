@@ -3,6 +3,11 @@
 #include <stdlib.h> // malloc C-compatoat* 
 #include <iostream>
 
+// for rand nums
+
+#include <cstdlib>
+#include <ctime>
+
 
 __global__ void helloKernel() {
 
@@ -33,6 +38,21 @@ __global__ void parallelAdd(float* a, float* b, float* c) {
 
     //printf("blockIdx.x: %d, blockDim.x: %d, threadIdx.x: %d", blockIdx.x, blockDim.x, threadIdx.x);
     //printf("c[i] is %f", c[i]);
+
+}
+
+__global__ void parallelMul(int* a, int* b, int* c, int N) {
+    // simply a practice in data size restriction. what if your data isnt x32?
+    // N - data size
+
+    int i = blockIdx.x * blockDim.x + threadIdx.x; // current thread of total threads
+
+    // say N = 1000, for 16 blocks @ 64 threads
+
+    if (i < N) {
+        c[i] = a[i] * b[i];
+    }
+
 
 }
 
@@ -82,6 +102,9 @@ int main() {
         std::cout << cpu_c[i] << std::endl;
     }
 
+
+
+
     cudaDeviceSynchronize();
 
     // parallelAdd(a, b, c); // going thru cudaMalloc & cudaFree through this later
@@ -92,6 +115,51 @@ int main() {
     cudaFree(d_a);
     cudaFree(d_b);
     cudaFree(d_c);
+
+    // second kernel - parallelMul
+
+    int mulOne[1000];
+    int mulTwo[1000];
+
+    srand(time(NULL));
+
+    for (int i = 0; i < 1000; i++) {
+        mulOne[i] = rand() % 100;
+        mulTwo[i] = rand() % 100;
+    }
+
+
+    // now setup the usual
+    int mulFinal[1000];
+
+    // malloc CUDA arr, cudaMemcpy
+
+    int* mul_1;
+    cudaMalloc(&mul_1, 1000*sizeof(int));
+    int* mul_2;
+    cudaMalloc(&mul_2, 1000*sizeof(int));
+    int* mul_final;
+    cudaMalloc(&mul_final, 1000*sizeof(int)); // 4k bytes
+
+    cudaMemcpy(mul_1, mulOne, 1000*sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(mul_2, mulTwo, 1000*sizeof(int), cudaMemcpyHostToDevice);
+
+    // now run ur computation
+
+    parallelMul<<<16, 64>>>(mul_1, mul_2, mul_final, 1000);
+
+    // copy back over, free mem
+
+    cudaMemcpy(mulFinal, mul_final, 1000*sizeof(int), cudaMemcpyDeviceToHost);
+
+    for (int k = 0; k < 1000; k++) {
+        std::cout << mulFinal[k] << std::endl;
+    }
+
+    cudaFree(mul_1);
+    cudaFree(mul_2);
+    cudaFree(mul_final);
+
 
 }
 
