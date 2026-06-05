@@ -19,19 +19,21 @@ getters & setters, of course!
 
 class SimpleTensor {
     public:
-        SimpleTensor(int* shape, int dimension); // dimension for Dim of tensor
+        SimpleTensor(std::vector<int> shape, int dimension, float* dataBuffer);
+        SimpleTensor(std::vector<int> shape, int dimension); // dimension for Dim of tensor
         ~SimpleTensor();
         // setters and getters
-        void setShape(int* shape, int dimension);
+        void setShape(std::vector<int> shape, int dimension);
+        void setBuffer(float* dataBuffer); // copy from cpu to gpu mem
         std::vector<int> getShape();
         float* getBuffer();
         std::vector<int> getStride();
 
 
     private:
-        int dimension = 0;
-        int size = 1; // set with the constructor
-        float* dataBuffer; // CUDA memory
-        std::vector<int> shape; // CPU
-        std::vector<int> stride;
+        int dimension_;
+        int size_; // set with the constructor
+        float* dataBuffer_; // CUDA memory
+        std::vector<int> shape_; // CPU
+        std::vector<int> stride_;
 };
