@@ -53,12 +53,37 @@ SimpleTensor::SimpleTensor(std::vector<int> shape, int dimension, float* dataBuf
 }
 
 SimpleTensor::SimpleTensor(std::vector<int> shape, int dimension) {
+    // same as before, fill with blanks
 
+    dimension_ = dimension;
+    shape_ = shape;
+
+    size_ = 1;
+    for (int i = 0; i < shape.size(); i++) {
+        size_ *= shape[i];
+    }
+
+    // set your stride!
+    stride_.resize(dimension_);
+    stride_[dimension_ - 1] = 1;
+
+    for (int i = dimension_ - 2; i >= 0; i--) {
+        stride_[i] = stride_[i+1] * shape_[i+1];
+    }
+
+    float* d_buf;
+    cudaMalloc(&d_buf, size_*sizeof(float));
+
+    cudaMemset(d_buf, 0, size_*sizeof(float)); // setting to all 0's, no need to have a Memcpy
+
+    dataBuffer_ = d_buf;
 }
 
 
 SimpleTensor::~SimpleTensor() {
     // destructor
+
+    cudaFree(dataBuffer_); // only thing, everything else takes care
 }
 
 void SimpleTensor::setShape(std::vector<int> shape, int dimension) {
