@@ -13,8 +13,8 @@ getters & setters, of course!
 */
 
 #pragma once // replaces ifndef and define, endif
-#include <string>
 #include <vector>
+#include <stdexcept>
 
 
 class SimpleTensor {
@@ -24,7 +24,7 @@ class SimpleTensor {
         ~SimpleTensor();
         // setters and getters
         void setShape(std::vector<int> shape, int dimension);
-        void setBuffer(float* dataBuffer); // copy from cpu to gpu mem
+        void setBuffer(float* dataBuffer, int size); // copy from cpu to gpu mem
         std::vector<int> getShape();
         float* getBuffer();
         std::vector<int> getStride();
