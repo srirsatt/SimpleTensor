@@ -234,6 +234,16 @@ std::vector<T> SimpleTensor<T>::toHost() {
     return dataBuffer;
 }
 
+template <typename T>
+int SimpleTensor<T>::getDimension() {
+    return dimension_;
+}
+
+template <typename T>
+int SimpleTensor<T>::getSize() {
+    return size_;
+}
+
 
 template class SimpleTensor<float>;
 template class SimpleTensor<double>;
