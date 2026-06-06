@@ -19,8 +19,8 @@ getters & setters, of course!
 #include <vector>
 #include <stdexcept> // for exceptions
 
-
-SimpleTensor::SimpleTensor(std::vector<int> shape, int dimension, float* dataBuffer) {
+template <typename T>
+SimpleTensor<T>::SimpleTensor(std::vector<int> shape, int dimension, T* dataBuffer) {
     // constructor
     // take in the data buffer from cpu mem, copy it to GPU mem, copy shape into the private field and dimension
 
@@ -48,16 +48,17 @@ SimpleTensor::SimpleTensor(std::vector<int> shape, int dimension, float* dataBuf
 
 
     // cudaMalloc
-    float* d_buf;
-    cudaMalloc(&d_buf, size_*sizeof(float));
+    T* d_buf;
+    cudaMalloc(&d_buf, size_*sizeof(T));
 
     // cudaMemcpy
-    cudaMemcpy(d_buf, dataBuffer, size_*sizeof(float), cudaMemcpyHostToDevice); // CPU->GPU memcpy
+    cudaMemcpy(d_buf, dataBuffer, size_*sizeof(T), cudaMemcpyHostToDevice); // CPU->GPU memcpy
 
     dataBuffer_ = d_buf;
 }
 
-SimpleTensor::SimpleTensor(std::vector<int> shape, int dimension) {
+template <typename T>
+SimpleTensor<T>::SimpleTensor(std::vector<int> shape, int dimension) {
     // same as before, fill with blanks
 
     if (shape.size() != dimension) {
@@ -80,22 +81,24 @@ SimpleTensor::SimpleTensor(std::vector<int> shape, int dimension) {
         stride_[i] = stride_[i+1] * shape_[i+1];
     }
 
-    float* d_buf;
-    cudaMalloc(&d_buf, size_*sizeof(float));
+    T* d_buf;
+    cudaMalloc(&d_buf, size_*sizeof(T));
 
-    cudaMemset(d_buf, 0, size_*sizeof(float)); // setting to all 0's, no need to have a Memcpy
+    cudaMemset(d_buf, 0, size_*sizeof(T)); // setting to all 0's, no need to have a Memcpy
 
     dataBuffer_ = d_buf;
 }
 
-
-SimpleTensor::~SimpleTensor() {
+template <typename T>
+SimpleTensor<T>::~SimpleTensor() {
     // destructor
 
     cudaFree(dataBuffer_); // only thing, everything else takes care
 }
 
-void SimpleTensor::reshape(std::vector<int> shape, int dimension) {
+
+template <typename T>
+void SimpleTensor<T>::reshape(std::vector<int> shape, int dimension) {
 
     // check validity within shape
 
@@ -125,7 +128,9 @@ void SimpleTensor::reshape(std::vector<int> shape, int dimension) {
     }
 }
 
-void SimpleTensor::setBuffer(float* dataBuffer, int size) {
+
+template <typename T>
+void SimpleTensor<T>::setBuffer(T* dataBuffer, int size) {
 
     // buffer - change in data
     // size check for consistency
@@ -141,20 +146,22 @@ void SimpleTensor::setBuffer(float* dataBuffer, int size) {
     cudaFree(dataBuffer_);
 
 
-    float* d_buf;
-    cudaMalloc(&d_buf, size_*sizeof(float));
+    T* d_buf;
+    cudaMalloc(&d_buf, size_*sizeof(T));
 
-    cudaMemcpy(d_buf, dataBuffer, size_*sizeof(float), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_buf, dataBuffer, size_*sizeof(T), cudaMemcpyHostToDevice);
 
     dataBuffer_ = d_buf;
 }
 
-void SimpleTensor::print() {
+
+template <typename T>
+void SimpleTensor<T>::print() {
     // print method - want to print in the Kernel shape
 
     // print per matrix, for each "layer" in the matrix
 
-    std::vector<float> data = toHost();
+    std::vector<T> data = toHost();
 
     // now lets print it
 
@@ -191,32 +198,44 @@ void SimpleTensor::print() {
     }
 }
 
-std::vector<int> SimpleTensor::getShape() {
+
+template <typename T>
+std::vector<int> SimpleTensor<T>::getShape() {
 
     return shape_;
 
 }
 
-float* SimpleTensor::getBuffer() {
 
-    return dataBuffer_; // keep in mind, this returns the Addr to the float arr
+template <typename T>
+T* SimpleTensor<T>::getBuffer() {
+
+    return dataBuffer_; // keep in mind, this returns the Addr to the T (template) arr
 
 }
 
-std::vector<int> SimpleTensor::getStride() {
+
+template <typename T>
+std::vector<int> SimpleTensor<T>::getStride() {
 
     return stride_;
 }
 
-std::vector<float> SimpleTensor::toHost() {
+template <typename T>
+std::vector<T> SimpleTensor<T>::toHost() {
 
-    std::vector<float> dataBuffer;
+    std::vector<T> dataBuffer;
 
     dataBuffer.resize(size_);
 
-    cudaMemcpy(dataBuffer.data(), dataBuffer_, size_*sizeof(float), cudaMemcpyDeviceToHost);
+    cudaMemcpy(dataBuffer.data(), dataBuffer_, size_*sizeof(T), cudaMemcpyDeviceToHost);
 
 
     return dataBuffer;
 }
 
+
+template class SimpleTensor<float>;
+template class SimpleTensor<double>;
+template class SimpleTensor<int>;
+template class SimpleTensor<long>;
