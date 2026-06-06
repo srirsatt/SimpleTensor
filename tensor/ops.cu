@@ -48,3 +48,9 @@ SimpleTensor<T> add(SimpleTensor<T>& a, SimpleTensor<T>& b) {
     return outputTensor;
 }
 
+
+template SimpleTensor<float> add<float>(SimpleTensor<float>&, SimpleTensor<float>&);
+template SimpleTensor<int> add<int>(SimpleTensor<int>&, SimpleTensor<int>&);
+
+
+

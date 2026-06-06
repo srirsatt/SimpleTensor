@@ -30,6 +30,8 @@ class SimpleTensor {
         T* getBuffer();
         std::vector<int> getStride();
         std::vector<T> toHost();
+        int getDimension();
+        int getSize();
         
 
 

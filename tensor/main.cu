@@ -1,4 +1,5 @@
 #include "tensor.h"
+#include "ops.h"
 #include <cuda_runtime.h>
 #include <stdio.h>
 #include <iostream>
@@ -31,6 +32,20 @@ int main() {
     for (float num : tensorOne.toHost()) {
         std::cout << num << std::endl;
     }
+
+    // CUDA ops testing
+    std::cout << std::endl;
+
+    float data_1[] = {1, 2, 3, 4, 5, 6};
+    float data_3[] = {2, 4, 6, 8, 10, 12};
+
+    SimpleTensor<float> a({2, 3, 1}, 3, data_1);
+    SimpleTensor<float> b({2, 3, 1}, 3, data_3);
+
+    SimpleTensor<float> c = add(a, b);
+
+    c.print();
+    
 
     return 0;
 }
