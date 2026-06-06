@@ -26,7 +26,6 @@ class SimpleTensor {
         void reshape(std::vector<int> shape, int dimension);
         void setBuffer(T* dataBuffer, int size); // copy from cpu to gpu mem
         void print();
-        void reshape(std::vector<int> newShape, int dimension);
         std::vector<int> getShape();
         T* getBuffer();
         std::vector<int> getStride();

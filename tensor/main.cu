@@ -7,7 +7,7 @@
 
 int main() {
     float data[] = {1, 2, 3, 4, 5, 6}; // 6 element vector, 
-    SimpleTensor tensorOne({2, 3}, 2, data);
+    SimpleTensor<float> tensorOne({2, 3}, 2, data);
 
     // CPU memcpy for testing
 
