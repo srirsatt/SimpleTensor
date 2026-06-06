@@ -25,10 +25,12 @@ class SimpleTensor {
         // setters and getters
         void setShape(std::vector<int> shape, int dimension);
         void setBuffer(float* dataBuffer, int size); // copy from cpu to gpu mem
+        void print();
         std::vector<int> getShape();
         float* getBuffer();
         std::vector<int> getStride();
         std::vector<float> toHost();
+        
 
 
     private:

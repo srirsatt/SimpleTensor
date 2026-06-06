@@ -178,3 +178,45 @@ std::vector<float> SimpleTensor::toHost() {
     return dataBuffer;
 }
 
+void SimpleTensor::print() {
+    // print method - want to print in the Kernel shape
+
+    // print per matrix, for each "layer" in the matrix
+
+    std::vector<float> data = toHost();
+
+    // now lets print it
+
+    if (dimension_ == 1) {
+        std::cout << "1D tensor. printing elements in the one row!" << std::endl;
+        for (int i = 0; i < size_; i++) {
+            std::cout << data[i] << std::endl;
+        }
+    } else if (dimension_ == 2) {
+        std::cout << "2D Tensor. printing out matrix!" << std::endl;
+
+        for (int i = 0; i < shape_[0]; i++) {
+            for (int j = 0; j < shape_[1]; j++) {
+                std::cout << data[i * stride_[0] + j * stride_[1]] << " ";
+            }
+            std::cout << std::endl;
+        }
+    } else if (dimension_ == 3) {
+        std::cout << "3d tensor. printing out matrices!" << std::endl;
+        for (int i = 0; i < shape_[0]; i++) {
+            for (int j = 0; j < shape_[1]; j++) {
+                for (int k = 0; k < shape_[2]; k++) {
+                    std::cout << data[i * stride_[0] + j * stride_[1] + k * stride_[2]] << " ";
+                }
+                std::cout << std::endl;
+            }
+        std::cout << "---" << std::endl;  // separator between matrices
+        } 
+    } else {
+        // all elements simple print
+        for (int i = 0; i < data.size(); i++) {
+            std::cout << "element " << i << ": " << data[i];
+        }
+    }
+}
+

@@ -26,5 +26,11 @@ int main() {
         std::cout << s << std::endl; // 2, 3
     }
 
+    // grab to host, print resulting array
+
+    for (float num : tensorOne.toHost()) {
+        std::cout << num << std::endl;
+    }
+
     return 0;
 }
