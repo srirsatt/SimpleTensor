@@ -166,3 +166,15 @@ std::vector<int> SimpleTensor::getStride() {
     return stride_;
 }
 
+std::vector<float> SimpleTensor::toHost() {
+
+    std::vector<float> dataBuffer;
+
+    dataBuffer.resize(size_);
+
+    cudaMemcpy(dataBuffer.data(), dataBuffer_, size_*sizeof(float), cudaMemcpyDeviceToHost);
+
+
+    return dataBuffer;
+}
+

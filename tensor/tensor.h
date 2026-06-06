@@ -28,6 +28,7 @@ class SimpleTensor {
         std::vector<int> getShape();
         float* getBuffer();
         std::vector<int> getStride();
+        std::vector<float> toHost();
 
 
     private:
