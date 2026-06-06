@@ -23,9 +23,10 @@ class SimpleTensor {
         SimpleTensor(std::vector<int> shape, int dimension); // dimension for Dim of tensor
         ~SimpleTensor();
         // setters and getters
-        void setShape(std::vector<int> shape, int dimension);
+        void reshape(std::vector<int> shape, int dimension);
         void setBuffer(float* dataBuffer, int size); // copy from cpu to gpu mem
         void print();
+        void reshape(std::vector<int> newShape, int dimension);
         std::vector<int> getShape();
         float* getBuffer();
         std::vector<int> getStride();

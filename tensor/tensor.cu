@@ -95,7 +95,7 @@ SimpleTensor::~SimpleTensor() {
     cudaFree(dataBuffer_); // only thing, everything else takes care
 }
 
-void SimpleTensor::setShape(std::vector<int> shape, int dimension) {
+void SimpleTensor::reshape(std::vector<int> shape, int dimension) {
 
     // check validity within shape
 
@@ -149,35 +149,6 @@ void SimpleTensor::setBuffer(float* dataBuffer, int size) {
     dataBuffer_ = d_buf;
 }
 
-std::vector<int> SimpleTensor::getShape() {
-
-    return shape_;
-
-}
-
-float* SimpleTensor::getBuffer() {
-
-    return dataBuffer_; // keep in mind, this returns the Addr to the float arr
-
-}
-
-std::vector<int> SimpleTensor::getStride() {
-
-    return stride_;
-}
-
-std::vector<float> SimpleTensor::toHost() {
-
-    std::vector<float> dataBuffer;
-
-    dataBuffer.resize(size_);
-
-    cudaMemcpy(dataBuffer.data(), dataBuffer_, size_*sizeof(float), cudaMemcpyDeviceToHost);
-
-
-    return dataBuffer;
-}
-
 void SimpleTensor::print() {
     // print method - want to print in the Kernel shape
 
@@ -210,7 +181,7 @@ void SimpleTensor::print() {
                 }
                 std::cout << std::endl;
             }
-        std::cout << "---" << std::endl;  // separator between matrices
+            std::cout << "---" << std::endl;  // separator between matrices
         } 
     } else {
         // all elements simple print
@@ -218,5 +189,34 @@ void SimpleTensor::print() {
             std::cout << "element " << i << ": " << data[i];
         }
     }
+}
+
+std::vector<int> SimpleTensor::getShape() {
+
+    return shape_;
+
+}
+
+float* SimpleTensor::getBuffer() {
+
+    return dataBuffer_; // keep in mind, this returns the Addr to the float arr
+
+}
+
+std::vector<int> SimpleTensor::getStride() {
+
+    return stride_;
+}
+
+std::vector<float> SimpleTensor::toHost() {
+
+    std::vector<float> dataBuffer;
+
+    dataBuffer.resize(size_);
+
+    cudaMemcpy(dataBuffer.data(), dataBuffer_, size_*sizeof(float), cudaMemcpyDeviceToHost);
+
+
+    return dataBuffer;
 }
 
