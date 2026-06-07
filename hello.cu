@@ -1,6 +1,6 @@
 #include <cuda_runtime.h> // cuda mem alloc
 #include <stdio.h> // printf
-#include <stdlib.h> // malloc C-compatoat* 
+#include <stdlib.h> // malloc C-compat* 
 #include <iostream>
 
 // for rand nums

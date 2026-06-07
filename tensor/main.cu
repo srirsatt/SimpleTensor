@@ -39,12 +39,18 @@ int main() {
     float data_1[] = {1, 2, 3, 4, 5, 6};
     float data_3[] = {2, 4, 6, 8, 10, 12};
 
+    float scalar = 4;
+
     SimpleTensor<float> a({2, 3, 1}, 3, data_1);
     SimpleTensor<float> b({2, 3, 1}, 3, data_3);
 
     SimpleTensor<float> c = add(a, b);
 
-    c.print();
+    SimpleTensor<float> d = scalarOp(a, scalar, ScalarOp::MULTIPLY);
+
+    //c.print();
+
+    d.print();
     
 
     return 0;
