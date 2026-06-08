@@ -8,19 +8,63 @@
 
 
 template <typename T>
-__global__ void addKernel(T* a, T* b, T* c, int N) {
+__global__ void elementKernel(T* a, T* b, T* c, int N, ElementWiseOp operation) {
     // simple add op
 
     int i = blockIdx.x * blockDim.x + threadIdx.x; // calculating the exact thread ur located in
 
     if (i < N) {
-        c[i] = a[i] + b[i];
+        switch (operation) {
+            case ElementWiseOp::ADD:
+                c[i] = a[i] + b[i];
+                break;
+            case ElementWiseOp::SUBTRACT:
+                c[i] = a[i] - b[i];
+                break;
+            case ElementWiseOp::MULTIPLY:
+                c[i] = a[i] * b[i];
+                break;
+            case ElementWiseOp::DIVIDE:
+                c[i] = a[i] / b[i];
+                break;
+        }
+    }
+}
+
+
+/*
+template <typename T>
+__global__ void subtractKernel(T* a, T* b, T* c, int N) {
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (i < N) {
+        c[i] = a[i] - b[i];
     }
 }
 
 template <typename T>
+__global__ void multiplyKernel(T* a, T* b, T* c, int N) {
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (i < N) {
+        c[i] = a[i] * b[i];
+    }
+}
+
+template <typename T>
+__global__ void divideKernel(T* a, T* b, T* c, int N) {
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (i < N) {
+        c[i] = a[i] / b[i];
+    }
+}
+
+*/
+
+template <typename T>
 // CPU add
-SimpleTensor<T> add(SimpleTensor<T>& a, SimpleTensor<T>& b) {
+SimpleTensor<T> elementOp(SimpleTensor<T>& a, SimpleTensor<T>& b, ElementWiseOp operation) {
     
     // valid input shapes
     if (a.getDimension() != b.getDimension()) {
@@ -43,7 +87,7 @@ SimpleTensor<T> add(SimpleTensor<T>& a, SimpleTensor<T>& b) {
     int blocks = (a.getSize() + threads - 1) / threads; // esssentially a ceil function for block counts
 
     // constructors manage mem!
-    addKernel<<<blocks, threads>>>(a.getBuffer(), b.getBuffer(), outputTensor.getBuffer(), a.getSize());
+    elementKernel<<<blocks, threads>>>(a.getBuffer(), b.getBuffer(), outputTensor.getBuffer(), a.getSize(), operation);
 
 
     return outputTensor;
@@ -88,8 +132,8 @@ SimpleTensor<T> scalarOp(SimpleTensor<T>& a, T scalar, ScalarOp operation) {
 }
 
 
-template SimpleTensor<float> add<float>(SimpleTensor<float>&, SimpleTensor<float>&);
-template SimpleTensor<int> add<int>(SimpleTensor<int>&, SimpleTensor<int>&);
+template SimpleTensor<float> elementOp<float>(SimpleTensor<float>&, SimpleTensor<float>&, ElementWiseOp);
+template SimpleTensor<int> elementOp<int>(SimpleTensor<int>&, SimpleTensor<int>&, ElementWiseOp);
 template SimpleTensor<float> scalarOp<float>(SimpleTensor<float>&, float, ScalarOp);
 template SimpleTensor<int> scalarOp<int>(SimpleTensor<int>&, int, ScalarOp);
 

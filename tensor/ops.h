@@ -9,12 +9,19 @@ enum class ScalarOp {
     DIVIDE
 };
 
+enum class ElementWiseOp {
+    ADD,
+    SUBTRACT,
+    MULTIPLY,
+    DIVIDE
+};
+
 
 template <typename T>
-__global__ void addKernel(T* a, T* b, T* c, int N);
+__global__ void elementKernel(T* a, T* b, T* c, int N, ElementWiseOp operation);
 
 template <typename T>
-SimpleTensor<T> add(SimpleTensor<T>& a, SimpleTensor<T>& b);
+SimpleTensor<T> elementOp(SimpleTensor<T>& a, SimpleTensor<T>& b, ElementWiseOp operation);
 
 template <typename T>
 __global__ void scalarKernel(T* a, T scalar, T* c, int N, ScalarOp operation);

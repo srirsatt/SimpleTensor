@@ -44,13 +44,15 @@ int main() {
     SimpleTensor<float> a({2, 3, 1}, 3, data_1);
     SimpleTensor<float> b({2, 3, 1}, 3, data_3);
 
-    SimpleTensor<float> c = add(a, b);
+    //SimpleTensor<float> c = add(a, b);
 
     SimpleTensor<float> d = scalarOp(a, scalar, ScalarOp::MULTIPLY);
 
+    SimpleTensor<float> e = elementOp(a, b, ElementWiseOp::MULTIPLY);
+
     //c.print();
 
-    d.print();
+    e.print();
     
 
     return 0;
