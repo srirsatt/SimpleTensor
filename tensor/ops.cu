@@ -164,6 +164,19 @@ __global__ void reduceKernel(T* input, T* output, int N, ReduceOp operation) {
                             sharedData[threadIdx.x] = sharedData[threadIdx.x + stride];
                         }
                         break;
+                    case ReduceOp::MIN:
+                        if (sharedData[threadIdx.x] > sharedData[threadIdx.x + stride]) {
+                            sharedData[threadIdx.x] = sharedData[threadIdx.x + stride];
+                        }
+                        break;
+                    case ReduceOp::MEAN:
+                        sharedData[threadIdx.x] += sharedData[threadIdx.x + stride];
+                        break;
+                    case ReduceOp::PRODUCT:
+                        sharedData[threadIdx.x] *= sharedData[threadIdx.x + stride];
+                        break;
+                    default:
+                        break;
                 }
                 // we half the tree size at each loop, then we do the sum at each thread equals sum[thread] + sum[thread+stride]. - that way we are computing properly in parallel.
                 
@@ -171,8 +184,10 @@ __global__ void reduceKernel(T* input, T* output, int N, ReduceOp operation) {
             }
         }
 
-        if (threadIdx.x == 0) {
-            output[blockIdx.x] = sharedData[threadIdx.x]; // final check - we need to make sure after the entire tree reduction, the data that belongs in sharedData[0] is in output[0] for each block
+        if (threadIdx.x == 0 && operation == ReduceOp::MEAN) {
+            output[blockIdx.x] = sharedData[threadIdx.x] / N; // final check - we need to make sure after the entire tree reduction, the data that belongs in sharedData[0] is in output[0] for each block
+        } else if (threadIdx.x == 0) {
+            output[blockIdx.x] = sharedData[threadIdx.x];
         }
 
     }

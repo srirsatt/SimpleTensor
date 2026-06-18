@@ -52,10 +52,13 @@ int main() {
 
     SimpleTensor<float> crazy = reduceOp(a, ReduceOp::MAX);
 
+    SimpleTensor<float> testy = reduceOp(a, ReduceOp::MEAN); // 3.5
+
     //c.print();
 
     e.print();
     crazy.print();
+    testy.print();
     
 
     return 0;
