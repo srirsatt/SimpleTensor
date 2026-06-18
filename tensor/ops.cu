@@ -132,7 +132,7 @@ SimpleTensor<T> scalarOp(SimpleTensor<T>& a, T scalar, ScalarOp operation) {
 }
 
 template <typename T>
-__global__ void reduceAdd(T* input, T* output, int N, ReduceOp operation) {
+__global__ void reduceKernel(T* input, T* output, int N, ReduceOp operation) {
 
     int i = blockIdx.x * blockDim.x + threadIdx.x; // exact thread that im at
 
@@ -142,6 +142,7 @@ __global__ void reduceAdd(T* input, T* output, int N, ReduceOp operation) {
     // now we need to load all the data from input into shared mem
 
     if (i < N) {
+
         sharedData[threadIdx.x] = input[i];
     
         //sharedData[threadIdx.x] = input[i]; // per block thread index - so per block, this loads every thread with a "data point" from the dataBuf
@@ -154,8 +155,16 @@ __global__ void reduceAdd(T* input, T* output, int N, ReduceOp operation) {
             if (threadIdx.x < stride) {
                 // runs for only half
 
-                sharedData[threadIdx.x] += sharedData[threadIdx.x + stride]; 
-
+                switch (operation) {
+                    case ReduceOp::SUM:
+                        sharedData[threadIdx.x] += sharedData[threadIdx.x + stride];
+                        break;
+                    case ReduceOp::MAX:
+                        if (sharedData[threadIdx.x] < sharedData[threadIdx.x + stride]) {
+                            sharedData[threadIdx.x] = sharedData[threadIdx.x + stride];
+                        }
+                        break;
+                }
                 // we half the tree size at each loop, then we do the sum at each thread equals sum[thread] + sum[thread+stride]. - that way we are computing properly in parallel.
                 
                 __syncthreads();
@@ -179,7 +188,7 @@ SimpleTensor<T> reduceOp(SimpleTensor<T> &a, ReduceOp operation) {
 
     SimpleTensor<T> outputTensor({blocks}, 1); // tensor made from the same shape
 
-    reduceAdd<<<blocks, threads>>>(a.getBuffer(), outputTensor.getBuffer(), a.getSize(), operation);
+    reduceKernel<<<blocks, threads>>>(a.getBuffer(), outputTensor.getBuffer(), a.getSize(), operation);
 
     return outputTensor;
 }

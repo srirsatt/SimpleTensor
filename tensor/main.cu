@@ -50,7 +50,7 @@ int main() {
 
     SimpleTensor<float> e = elementOp(a, b, ElementWiseOp::MULTIPLY);
 
-    SimpleTensor<float> crazy = reduceOp(a, ReduceOp::SUM);
+    SimpleTensor<float> crazy = reduceOp(a, ReduceOp::MAX);
 
     //c.print();
 
