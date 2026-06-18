@@ -131,9 +131,64 @@ SimpleTensor<T> scalarOp(SimpleTensor<T>& a, T scalar, ScalarOp operation) {
     return outputTensor;
 }
 
+template <typename T>
+__global__ void reduceAdd(T* input, T* output, int N, ReduceOp operation) {
+
+    int i = blockIdx.x * blockDim.x + threadIdx.x; // exact thread that im at
+
+    __shared__ T sharedData[256];
+
+
+    // now we need to load all the data from input into shared mem
+
+    if (i < N) {
+        sharedData[threadIdx.x] = input[i];
+    
+        //sharedData[threadIdx.x] = input[i]; // per block thread index - so per block, this loads every thread with a "data point" from the dataBuf
+
+        __syncthreads();
+
+        for (int stride = blockDim.x / 2; stride > 0; stride /= 2) {
+            // block dim, remember, is the amount of threads in a block. move thru "half" of the array potential and add
+
+            if (threadIdx.x < stride) {
+                // runs for only half
+
+                sharedData[threadIdx.x] += sharedData[threadIdx.x + stride]; 
+
+                // we half the tree size at each loop, then we do the sum at each thread equals sum[thread] + sum[thread+stride]. - that way we are computing properly in parallel.
+                
+                __syncthreads();
+            }
+        }
+
+        if (threadIdx.x == 0) {
+            output[blockIdx.x] = sharedData[threadIdx.x]; // final check - we need to make sure after the entire tree reduction, the data that belongs in sharedData[0] is in output[0] for each block
+        }
+
+    }
+
+}
+
+template <typename T>
+SimpleTensor<T> reduceOp(SimpleTensor<T> &a, ReduceOp operation) {
+
+
+    int threads = 256;
+    int blocks = (a.getSize() + threads - 1) / threads; // how many blocks i really need based on thread size
+
+    SimpleTensor<T> outputTensor({blocks}, 1); // tensor made from the same shape
+
+    reduceAdd<<<blocks, threads>>>(a.getBuffer(), outputTensor.getBuffer(), a.getSize(), operation);
+
+    return outputTensor;
+}
+
 
 template SimpleTensor<float> elementOp<float>(SimpleTensor<float>&, SimpleTensor<float>&, ElementWiseOp);
 template SimpleTensor<int> elementOp<int>(SimpleTensor<int>&, SimpleTensor<int>&, ElementWiseOp);
 template SimpleTensor<float> scalarOp<float>(SimpleTensor<float>&, float, ScalarOp);
 template SimpleTensor<int> scalarOp<int>(SimpleTensor<int>&, int, ScalarOp);
+template SimpleTensor<float> reduceOp<float>(SimpleTensor<float>&, ReduceOp);
+template SimpleTensor<int> reduceOp<int>(SimpleTensor<int>&, ReduceOp);
 
