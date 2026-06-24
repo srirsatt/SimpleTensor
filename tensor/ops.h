@@ -26,3 +26,9 @@ __global__ void reduceAdd(T* input, T* output, int N, ReduceOp operation);
 
 template <typename T>
 SimpleTensor<T> reduceOp(SimpleTensor<T>& a, ReduceOp operation);
+
+template <typename T>
+__global__ void naiveMatmul(T* a, T* b, T* output, int N, int M, int K);
+
+template <typename T>
+SimpleTensor<T> matmul(SimpleTensor<T> &a, SimpleTensor<T> &b);

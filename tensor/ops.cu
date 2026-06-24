@@ -208,6 +208,47 @@ SimpleTensor<T> reduceOp(SimpleTensor<T> &a, ReduceOp operation) {
     return outputTensor;
 }
 
+template <typename T>
+__global__ void naiveMatmul(T* a, T* b, T* output, int N, int M, int K) {
+    
+    int row = blockIdx.y * blockDim.y + threadIdx.y;
+    int col = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (row < M && col < N) {
+        // now we can run our computation
+        T sum = 0;
+        for (int i = 0; i < K; i++) {
+            sum += a[row*K + i] * b[i * N + col];
+        }
+
+        output[row * N + col] = sum;
+    }
+}
+
+template <typename T>
+SimpleTensor<T> matmul(SimpleTensor<T> &a, SimpleTensor<T> &b) {
+    // first check if its 2d - meaning dimension = 2
+    if (a.getDimension() != 2 || b.getDimension() != 2) {
+        throw std::invalid_argument("not 2d for matrix multiplication");
+    }
+
+    if (a.getShape()[1] != b.getShape()[0]) {
+        throw std::invalid_argument("two tensor shapes dont match for proper matmul");
+    }
+
+    int M = a.getShape()[0];
+    int N = b.getShape()[1];
+    int K = a.getShape()[1]; // the amount of times you have to add thru the elements in a dot prod - inner shared element
+
+    dim3 threads(16, 16);
+    dim3 blocks((N + threads.x - 1) / threads.x, (M + threads.y - 1) / threads.y);
+
+    SimpleTensor<T> outputTensor = SimpleTensor<T>(std::vector<int>{M, N}, a.getDimension()); // locks into 2 dim
+    naiveMatmul<<<blocks, threads>>>(a.getBuffer(), b.getBuffer(), outputTensor.getBuffer(), N, M, K);
+
+    return outputTensor;
+}
+
 
 template SimpleTensor<float> elementOp<float>(SimpleTensor<float>&, SimpleTensor<float>&, ElementWiseOp);
 template SimpleTensor<int> elementOp<int>(SimpleTensor<int>&, SimpleTensor<int>&, ElementWiseOp);
@@ -215,4 +256,6 @@ template SimpleTensor<float> scalarOp<float>(SimpleTensor<float>&, float, Scalar
 template SimpleTensor<int> scalarOp<int>(SimpleTensor<int>&, int, ScalarOp);
 template SimpleTensor<float> reduceOp<float>(SimpleTensor<float>&, ReduceOp);
 template SimpleTensor<int> reduceOp<int>(SimpleTensor<int>&, ReduceOp);
+template SimpleTensor<int> matmul<int>(SimpleTensor<int>&, SimpleTensor<int>&);
+template SimpleTensor<float> matmul<float>(SimpleTensor<float>&, SimpleTensor<float>&);
 

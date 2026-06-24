@@ -43,22 +43,30 @@ int main() {
 
     SimpleTensor<float> a({2, 3, 1}, 3, data_1);
     SimpleTensor<float> b({2, 3, 1}, 3, data_3);
+    SimpleTensor<float> c({3, 1}, 2, data_1);
+    SimpleTensor<float> d({2, 5}, 2, data_3);
 
     //SimpleTensor<float> c = add(a, b);
 
-    SimpleTensor<float> d = scalarOp(a, scalar, ScalarOp::MULTIPLY);
+    //SimpleTensor<float> d = scalarOp(a, scalar, ScalarOp::MULTIPLY);
 
-    SimpleTensor<float> e = elementOp(a, b, ElementWiseOp::MULTIPLY);
+    //SimpleTensor<float> e = elementOp(a, b, ElementWiseOp::MULTIPLY);
 
     SimpleTensor<float> crazy = reduceOp(a, ReduceOp::MAX);
 
     SimpleTensor<float> testy = reduceOp(a, ReduceOp::MEAN); // 3.5
 
+    SimpleTensor<float> rusheel = matmul(c, d);
+
     //c.print();
 
+    /*
     e.print();
     crazy.print();
     testy.print();
+
+    */
+    rusheel.print();
     
 
     return 0;
