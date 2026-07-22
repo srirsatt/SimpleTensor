@@ -28,7 +28,10 @@ template <typename T>
 SimpleTensor<T> reduceOp(SimpleTensor<T>& a, ReduceOp operation);
 
 template <typename T>
-__global__ void naiveMatmul(T* a, T* b, T* output, int N, int M, int K);
+__global__ void naiveMatmulKernel(T* a, T* b, T* output, int N, int M, int K);
 
 template <typename T>
-SimpleTensor<T> matmul(SimpleTensor<T> &a, SimpleTensor<T> &b);
+SimpleTensor<T> naiveMatmul(SimpleTensor<T> &a, SimpleTensor<T> &b);
+
+template <typename T>
+__global__ void tiledMatmulKernel(T* a, T* b, T* output, int N, int M, int K);
