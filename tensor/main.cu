@@ -56,7 +56,7 @@ int main() {
 
     SimpleTensor<float> testy = reduceOp(a, ReduceOp::MEAN); // 3.5
 
-    SimpleTensor<float> rusheel = naiveMatmul(c, d);
+    SimpleTensor<float> rusheel = tiledMatmul(c, d);
 
     //c.print();
 

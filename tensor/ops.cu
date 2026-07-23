@@ -290,6 +290,32 @@ __global__ void tiledMatmulKernel(T* a, T* b, T* output, int N, int M, int K) {
 
 }
 
+template <typename T>
+SimpleTensor<T> tiledMatmul(SimpleTensor<T> &a, SimpleTensor<T> &b) {
+    if (a.getDimension() != 2 || b.getDimension() != 2) {
+        throw std::invalid_argument("not 2d for matrix multiplication");
+    }
+
+    if (a.getShape()[1] != b.getShape()[0]) {
+        throw std::invalid_argument("two tensor shapes dont match for proper matmul");
+    }
+
+    // checking tensor dimensions for proper matmul - past 2d matmul will be explored later
+
+    int M = a.getShape()[0];
+    int N = b.getShape()[1];
+    int K = a.getShape()[1]; // also b.getShape()[0];
+
+    dim3 threads(16, 16);
+    dim3 blocks((N + threads.x - 1) / threads.x, (M + threads.y - 1) / threads.y);
+
+    SimpleTensor<T> outputTensor = SimpleTensor<T>(std::vector<int>{M, N}, a.getDimension()); // locks into an MxN 2D
+    tiledMatmulKernel<<<blocks, threads>>>(a.getBuffer(), b.getBuffer(), outputTensor.getBuffer(), N, M, K);
+
+    return outputTensor;
+
+}
+
 
 
 template SimpleTensor<float> elementOp<float>(SimpleTensor<float>&, SimpleTensor<float>&, ElementWiseOp);
@@ -300,3 +326,5 @@ template SimpleTensor<float> reduceOp<float>(SimpleTensor<float>&, ReduceOp);
 template SimpleTensor<int> reduceOp<int>(SimpleTensor<int>&, ReduceOp);
 template SimpleTensor<int> naiveMatmul<int>(SimpleTensor<int>&, SimpleTensor<int>&);
 template SimpleTensor<float> naiveMatmul<float>(SimpleTensor<float>&, SimpleTensor<float>&);
+template SimpleTensor<int> tiledMatmul<int>(SimpleTensor<int>&, SimpleTensor<int>&);
+template SimpleTensor<float> tiledMatmul<float>(SimpleTensor<float>&, SimpleTensor<float>&);

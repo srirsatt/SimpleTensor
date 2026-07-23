@@ -35,3 +35,6 @@ SimpleTensor<T> naiveMatmul(SimpleTensor<T> &a, SimpleTensor<T> &b);
 
 template <typename T>
 __global__ void tiledMatmulKernel(T* a, T* b, T* output, int N, int M, int K);
+
+template <typename T>
+SimpleTensor<T> tiledMatmul(SimpleTensor<T> &a, SimpleTensor<T> &b);
