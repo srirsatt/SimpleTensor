@@ -29,6 +29,7 @@ class SimpleTensor {
         void print();
         std::vector<int> getShape();
         T* getBuffer();
+        T* getGradBuffer();
         std::vector<int> getStride();
         std::vector<T> toHost();
         int getDimension();
@@ -42,6 +43,7 @@ class SimpleTensor {
         int size_; // set with the constructor
         bool requiresGrad_; // to check if a tensor has AutoGrad computations linked
         T* dataBuffer_; // CUDA memory
+        T* gradBuffer_; // holds gradients from AutoGrad production
         std::vector<int> shape_; // CPU
         std::vector<int> stride_;
 };

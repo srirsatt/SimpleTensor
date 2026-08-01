@@ -46,6 +46,17 @@ SimpleTensor<T>::SimpleTensor(std::vector<int> shape, int dimension, T* dataBuff
 
     // now i want to copy data buffer through alloc into cuda
 
+    if (requiresGrad == true) {
+        T* g_buf;
+        cudaMalloc(&g_buf, size_*sizeof(T));
+
+        cudaMemset(g_buf, 0, size_*sizeof(T));
+
+        gradBuffer_ = g_buf;
+    } else {
+        gradBuffer_ = nullptr;
+    }
+
 
 
     // cudaMalloc
@@ -83,6 +94,17 @@ SimpleTensor<T>::SimpleTensor(std::vector<int> shape, int dimension, bool requir
         stride_[i] = stride_[i+1] * shape_[i+1];
     }
 
+    if (requiresGrad == true) {
+        T* g_buf;
+        cudaMalloc(&g_buf, size_*sizeof(T));
+
+        cudaMemset(g_buf, 0, size_*sizeof(T));
+
+        gradBuffer_ = g_buf;
+    } else {
+        gradBuffer_ = nullptr;
+    }
+
     T* d_buf;
     cudaMalloc(&d_buf, size_*sizeof(T));
 
@@ -96,6 +118,11 @@ SimpleTensor<T>::~SimpleTensor() {
     // destructor
 
     cudaFree(dataBuffer_); // only thing, everything else takes care
+    // if i have a gradBuffer_ - we should also dealloc this
+
+    if (gradBuffer_) { // if not null
+        cudaFree(gradBuffer_);
+    }
 }
 
 
