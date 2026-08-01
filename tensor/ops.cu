@@ -306,8 +306,8 @@ SimpleTensor<T> tiledMatmul(SimpleTensor<T> &a, SimpleTensor<T> &b) {
     int N = b.getShape()[1];
     int K = a.getShape()[1]; // also b.getShape()[0];
 
-    dim3 threads(16, 16);
-    dim3 blocks((N + threads.x - 1) / threads.x, (M + threads.y - 1) / threads.y);
+    dim3 threads(TILE, TILE);
+    dim3 blocks((N + TILE - 1) / TILE, (M + TILE - 1) / TILE);
 
     SimpleTensor<T> outputTensor = SimpleTensor<T>(std::vector<int>{M, N}, a.getDimension()); // locks into an MxN 2D
     tiledMatmulKernel<<<blocks, threads>>>(a.getBuffer(), b.getBuffer(), outputTensor.getBuffer(), N, M, K);

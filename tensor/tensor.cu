@@ -20,7 +20,7 @@ getters & setters, of course!
 #include <stdexcept> // for exceptions
 
 template <typename T>
-SimpleTensor<T>::SimpleTensor(std::vector<int> shape, int dimension, T* dataBuffer) {
+SimpleTensor<T>::SimpleTensor(std::vector<int> shape, int dimension, T* dataBuffer, bool requiresGrad) {
     // constructor
     // take in the data buffer from cpu mem, copy it to GPU mem, copy shape into the private field and dimension
 
@@ -30,6 +30,7 @@ SimpleTensor<T>::SimpleTensor(std::vector<int> shape, int dimension, T* dataBuff
 
     dimension_ = dimension;
     shape_ = shape;
+    requiresGrad_ = requiresGrad;
 
     size_ = 1;
     for (int i = 0; i < shape.size(); i++) {
@@ -58,7 +59,7 @@ SimpleTensor<T>::SimpleTensor(std::vector<int> shape, int dimension, T* dataBuff
 }
 
 template <typename T>
-SimpleTensor<T>::SimpleTensor(std::vector<int> shape, int dimension) {
+SimpleTensor<T>::SimpleTensor(std::vector<int> shape, int dimension, bool requiresGrad) {
     // same as before, fill with blanks
 
     if (shape.size() != dimension) {
@@ -67,6 +68,7 @@ SimpleTensor<T>::SimpleTensor(std::vector<int> shape, int dimension) {
 
     dimension_ = dimension;
     shape_ = shape;
+    requiresGrad_ = requiresGrad;
 
     size_ = 1;
     for (int i = 0; i < shape.size(); i++) {
@@ -152,6 +154,11 @@ void SimpleTensor<T>::setBuffer(T* dataBuffer, int size) {
     cudaMemcpy(d_buf, dataBuffer, size_*sizeof(T), cudaMemcpyHostToDevice);
 
     dataBuffer_ = d_buf;
+}
+
+template <typename T>
+void SimpleTensor<T>::setRequiresGrad(bool input) {
+    requiresGrad_ = input;
 }
 
 
@@ -242,6 +249,11 @@ int SimpleTensor<T>::getDimension() {
 template <typename T>
 int SimpleTensor<T>::getSize() {
     return size_;
+}
+
+template <typename T>
+bool SimpleTensor<T>::getRequiresGrad() {
+    return requiresGrad_;
 }
 
 

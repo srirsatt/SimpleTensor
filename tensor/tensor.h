@@ -19,12 +19,13 @@ getters & setters, of course!
 template <typename T>
 class SimpleTensor {
     public:
-        SimpleTensor(std::vector<int> shape, int dimension, T* dataBuffer);
-        SimpleTensor(std::vector<int> shape, int dimension); // dimension for Dim of tensor
+        SimpleTensor(std::vector<int> shape, int dimension, T* dataBuffer, bool requiresGrad = false);
+        SimpleTensor(std::vector<int> shape, int dimension, bool requiresGrad = false); // dimension for Dim of tensor
         ~SimpleTensor();
         // setters and getters
         void reshape(std::vector<int> shape, int dimension);
         void setBuffer(T* dataBuffer, int size); // copy from cpu to gpu mem
+        void setRequiresGrad(bool input);
         void print();
         std::vector<int> getShape();
         T* getBuffer();
@@ -32,12 +33,14 @@ class SimpleTensor {
         std::vector<T> toHost();
         int getDimension();
         int getSize();
+        bool getRequiresGrad();
         
 
 
     private:
         int dimension_;
         int size_; // set with the constructor
+        bool requiresGrad_; // to check if a tensor has AutoGrad computations linked
         T* dataBuffer_; // CUDA memory
         std::vector<int> shape_; // CPU
         std::vector<int> stride_;
