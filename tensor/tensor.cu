@@ -125,6 +125,31 @@ SimpleTensor<T>::~SimpleTensor() {
     }
 }
 
+template <typename T>
+__global__ void fillKernel(T* buf, T val, int size) {
+    int i = blockIdx.x * blockDim.x + threadIdx.x; 
+    if (i < size) {
+        buf[i] = val;
+    }
+}
+
+
+template <typename T>
+void SimpleTensor<T>::backward() {
+    if (requiresGrad_) {
+        // to check if we have an empty leaf function, and if requiresGrad_ is true - for autograd computation in the first place
+            int threads = 256;
+            int blocks = (size_ + threads - 1) / threads;
+
+            fillKernel<<<blocks, threads>>>(gradBuffer_, (T)1.0f, size_);
+    }
+
+    if (backward_) {
+        backward_();
+    }
+}
+
+
 
 template <typename T>
 void SimpleTensor<T>::reshape(std::vector<int> shape, int dimension) {

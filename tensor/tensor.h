@@ -35,6 +35,7 @@ class SimpleTensor {
         int getDimension();
         int getSize();
         bool getRequiresGrad();
+        void backward(); // backward pass for autograd
         
 
 
@@ -46,4 +47,5 @@ class SimpleTensor {
         T* gradBuffer_; // holds gradients from AutoGrad production
         std::vector<int> shape_; // CPU
         std::vector<int> stride_;
+        std::function<void()> backward_; // backward pass recursive helper - calculates actual gradient values and recursess
 };
