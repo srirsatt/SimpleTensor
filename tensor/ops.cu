@@ -49,6 +49,16 @@ __global__ void mulBackwardKernel(T* grad, T* incomingGrad, T* other, int size) 
     }
 }
 
+template <typename T>
+__global__ void transposeMatrix(T* input, T* output, int rows, int cols) {
+    int row = blockIdx.y * blockDim.y + threadIdx.y;
+    int col = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (row < rows && col < cols) {
+        output[col * rows + row] = input[row * cols + col]; // basic transpose
+    }
+}
+
 
 /*
 template <typename T>
