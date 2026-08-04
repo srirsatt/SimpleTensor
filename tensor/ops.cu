@@ -31,6 +31,24 @@ __global__ void elementKernel(T* a, T* b, T* c, int N, ElementWiseOp operation) 
     }
 }
 
+// kernels for add & mul for autograd - to be pulled backwards by lamdbas for back prop
+
+template <typename T>
+__global__ void addBackwardKernel(T* grad, T* output, int size) {
+    int i = blockIdx.x * blockDim.x + threadIdx.x; 
+    if (i < size) {
+        grad[i] += output[i];
+    }
+}
+
+template <typename T>
+__global__ void mulBackwardKernel(T* grad, T* incomingGrad, T* other, int size) {
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    if (i < size) {
+        grad[i] += incomingGrad[i] * other[i];
+    }
+}
+
 
 /*
 template <typename T>
@@ -88,6 +106,44 @@ SimpleTensor<T> elementOp(SimpleTensor<T>& a, SimpleTensor<T>& b, ElementWiseOp 
 
     // constructors manage mem!
     elementKernel<<<blocks, threads>>>(a.getBuffer(), b.getBuffer(), outputTensor.getBuffer(), a.getSize(), operation);
+
+    // for memory concerns
+
+    T* gradC = outputTensor.getGradBuffer();
+    int size = a.getSize();
+
+    outputTensor.backward_ = [&a, &b, gradC, size, operation]() {
+        int threads = 256;
+        int blocks = (size + threads - 1) / threads;
+        
+
+        switch (operation) {
+            case ElementWiseOp::ADD:
+                if (a.getRequiresGrad()) {
+                    addBackwardKernel<<<blocks, threads>>>(a.getGradBuffer(), gradC, size);
+
+                }
+                if (b.getRequiresGrad()) {
+                    addBackwardKernel<<<blocks, threads>>>(b.getGradBuffer(), gradC, size);
+                }
+                break;
+            case ElementWiseOp::MULTIPLY:
+                if (a.getRequiresGrad()) {
+                    mulBackwardKernel<<<blocks, threads>>>(a.getGradBuffer(), gradC, b.getBuffer(), size);
+                }
+                if (b.getRequiresGrad()) {
+                    mulBackwardKernel<<<blocks, threads>>>(b.getGradBuffer(), gradC, a.getBuffer(), size);
+                }
+                break;
+        }
+
+        if (a.backward_) {
+            a.backward_();
+        }
+        if (b.backward_) {
+            b.backward_();
+        }
+    };
 
 
     return outputTensor;

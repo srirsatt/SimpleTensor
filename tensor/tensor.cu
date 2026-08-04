@@ -149,6 +149,10 @@ void SimpleTensor<T>::backward() {
     }
 }
 
+template <typename T>
+T* SimpleTensor<T>::getGradBuffer() {
+    return gradBuffer_;
+}
 
 
 template <typename T>
