@@ -15,6 +15,7 @@ getters & setters, of course!
 #pragma once // replaces ifndef and define, endif
 #include <vector>
 #include <stdexcept>
+#include <functional>
 
 template <typename T>
 class SimpleTensor {
@@ -32,10 +33,12 @@ class SimpleTensor {
         T* getGradBuffer();
         std::vector<int> getStride();
         std::vector<T> toHost();
+        std::vector<T> toHostGrad(); // for grad buffer
         int getDimension();
         int getSize();
         bool getRequiresGrad();
         void backward(); // backward pass for autograd
+        std::function<void()> backward_; // backward pass recursive helper - calculates actual gradient values and recursions
         
 
 
@@ -47,5 +50,4 @@ class SimpleTensor {
         T* gradBuffer_; // holds gradients from AutoGrad production
         std::vector<int> shape_; // CPU
         std::vector<int> stride_;
-        std::function<void()> backward_; // backward pass recursive helper - calculates actual gradient values and recursess
 };

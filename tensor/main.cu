@@ -39,7 +39,7 @@ int main() {
     float data_1[] = {1, 2, 3, 4, 5, 6};
     float data_3[] = {2, 4, 6, 8, 10, 12};
 
-    float scalar = 4;
+    //float scalar = 4;
 
     SimpleTensor<float> a({2, 3, 1}, 3, data_1);
     SimpleTensor<float> b({2, 3, 1}, 3, data_3);
@@ -67,6 +67,29 @@ int main() {
 
     */
     rusheel.print();
+
+
+    float dataNew[] = {2.0, 3.0};
+    float dataNewTwo[] = {4.0, 5.0};
+
+    SimpleTensor<float> A({2}, 1, dataNew, true);
+    SimpleTensor<float> B({2}, 1, dataNewTwo, true);
+
+    SimpleTensor<float> C = elementOp(A, B, ElementWiseOp::MULTIPLY);
+    C.backward();
+
+    auto gradA = A.toHostGrad();
+
+    for (int i = 0; i < 2; i++) {
+        printf("grad_A[%d] = %.2f (expected %.2f)\n", i, gradA[i], dataNew[i]);
+    }
+
+    auto gradB = B.toHostGrad();
+
+    for (int i = 0; i < 2; i++) {
+        printf("grad_B[%d] = %.2f (expected %.2f)\n", i, gradB[i], dataNew[i]);
+    }
+
     
 
     return 0;

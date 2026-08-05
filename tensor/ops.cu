@@ -59,6 +59,14 @@ __global__ void transposeMatrix(T* input, T* output, int rows, int cols) {
     }
 }
 
+template <typename T>
+__global__ void accumulate(T* gradBuffer, T* incomingGrad, int size) {
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (i < size) {
+        gradBuffer[i] += incomingGrad[i];
+    }
+}
 
 /*
 template <typename T>
@@ -99,6 +107,9 @@ SimpleTensor<T> elementOp(SimpleTensor<T>& a, SimpleTensor<T>& b, ElementWiseOp 
         throw std::invalid_argument("shape sizes arent the same!");
     }
 
+    bool needsGrad = a.getRequiresGrad() || b.getRequiresGrad();
+
+
     // check shapes themselves against each other
 
     for (int i = 0; i < a.getDimension(); i++) {
@@ -108,7 +119,7 @@ SimpleTensor<T> elementOp(SimpleTensor<T>& a, SimpleTensor<T>& b, ElementWiseOp 
     }
 
     // create output Tensor
-    SimpleTensor<T> outputTensor(a.getShape(), a.getDimension()); // this will Have a data buffer here
+    SimpleTensor<T> outputTensor(a.getShape(), a.getDimension(), needsGrad); // this will Have a data buffer here
 
     // launch kernel, where itll cudaMalloc to the place of the output tensor
     int threads = 256; // default block thread count
@@ -302,6 +313,8 @@ SimpleTensor<T> naiveMatmul(SimpleTensor<T> &a, SimpleTensor<T> &b) {
         throw std::invalid_argument("two tensor shapes dont match for proper matmul");
     }
 
+    bool needsGrad = a.getRequiresGrad() || b.getRequiresGrad();
+
     int M = a.getShape()[0];
     int N = b.getShape()[1];
     int K = a.getShape()[1]; // the amount of times you have to add thru the elements in a dot prod - inner shared element
@@ -309,7 +322,7 @@ SimpleTensor<T> naiveMatmul(SimpleTensor<T> &a, SimpleTensor<T> &b) {
     dim3 threads(16, 16);
     dim3 blocks((N + threads.x - 1) / threads.x, (M + threads.y - 1) / threads.y);
 
-    SimpleTensor<T> outputTensor = SimpleTensor<T>(std::vector<int>{M, N}, a.getDimension()); // locks into 2 dim
+    SimpleTensor<T> outputTensor = SimpleTensor<T>(std::vector<int>{M, N}, a.getDimension(), needsGrad); // locks into 2 dim
     naiveMatmulKernel<<<blocks, threads>>>(a.getBuffer(), b.getBuffer(), outputTensor.getBuffer(), N, M, K);
 
     return outputTensor;
@@ -377,6 +390,74 @@ SimpleTensor<T> tiledMatmul(SimpleTensor<T> &a, SimpleTensor<T> &b) {
 
     SimpleTensor<T> outputTensor = SimpleTensor<T>(std::vector<int>{M, N}, a.getDimension()); // locks into an MxN 2D
     tiledMatmulKernel<<<blocks, threads>>>(a.getBuffer(), b.getBuffer(), outputTensor.getBuffer(), N, M, K);
+
+    // autograd backprop matmul
+    T* gradC = outputTensor.getGradBuffer();
+    int sizeA = a.getSize();
+    int sizeB = b.getSize();
+    
+    
+    outputTensor.backward_ = [&a, &b, gradC, M, N, K, sizeA, sizeB]() {
+        if (a.getRequiresGrad()) {
+            T* bTranspose;
+            cudaMalloc(&bTranspose, sizeB*sizeof(T));
+            dim3 threads(16, 16);
+            dim3 blocks((b.getShape()[1] + 15) / 16, (b.getShape()[0] + 15) / 16);
+            transposeMatrix<<<blocks, threads>>>(b.getBuffer(), bTranspose, b.getShape()[0], b.getShape()[1]);
+
+            cudaDeviceSynchronize();
+
+            T* tempA;
+            cudaMalloc(&tempA, sizeA * sizeof(T));
+
+            dim3 matThreads(16, 16);
+            dim3 matBlocks((K + 15) / 16, (M + 15) / 16);
+
+            tiledMatmulKernel<<<matBlocks, matThreads>>>(gradC, bTranspose, tempA, N, M, K);
+            
+            int accThreads = 256;
+            int accBlocks = (sizeA + accThreads - 1) / accThreads;
+            accumulate<<<accBlocks, accThreads>>>(a.getGradBuffer(), tempA, sizeA);
+
+            cudaDeviceSynchronize();
+
+            cudaFree(tempA);
+            cudaFree(bTranspose);
+        }
+        if (b.getRequiresGrad()) {
+            T* aTranspose;
+            cudaMalloc(&aTranspose, sizeA*sizeof(T));
+            dim3 threads(16, 16);
+            dim3 blocks((a.getShape()[1] + 15) / 16, (a.getShape()[0] + 15) / 16);
+            transposeMatrix<<<blocks, threads>>>(a.getBuffer(), aTranspose, a.getShape()[0], a.getShape()[1]);
+
+            cudaDeviceSynchronize();
+            T* tempB;
+            cudaMalloc(&tempB, sizeB * sizeof(T));
+
+            dim3 matThreads(16, 16);
+            dim3 matBlocks((N + 15) / 16, (K + 15) / 16);
+
+            tiledMatmulKernel<<<matBlocks, matThreads>>>(gradC, aTranspose, tempB, N, K, M);
+
+            int accThreads = 256;
+            int accBlocks = (sizeB + accThreads - 1) / accThreads;
+            accumulate<<<accBlocks, accThreads>>>(b.getGradBuffer(), tempB, sizeB);
+
+            cudaDeviceSynchronize();
+
+            cudaFree(tempB);
+            cudaFree(aTranspose);
+        }
+
+        if (a.backward_) {
+            a.backward_();
+        }
+        if (b.backward_) {
+            b.backward_();
+        }
+    };
+
 
     return outputTensor;
 

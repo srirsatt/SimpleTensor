@@ -155,6 +155,8 @@ T* SimpleTensor<T>::getGradBuffer() {
 }
 
 
+
+
 template <typename T>
 void SimpleTensor<T>::reshape(std::vector<int> shape, int dimension) {
 
@@ -295,6 +297,18 @@ std::vector<T> SimpleTensor<T>::toHost() {
 
 
     return dataBuffer;
+}
+
+template <typename T>
+std::vector<T> SimpleTensor<T>::toHostGrad() {
+    if (!gradBuffer_) {
+        throw std::runtime_error("no grad buffer allocated or present");
+    }
+
+    std::vector<T> result(size_);
+    cudaMemcpy(result.data(), gradBuffer_, size_ * sizeof(T), cudaMemcpyDeviceToHost);
+
+    return result;
 }
 
 template <typename T>
