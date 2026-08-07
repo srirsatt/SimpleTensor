@@ -91,6 +91,46 @@ int main() {
     }
 
     
+    float dataF[] = {1.0, 2.0, 3.0, 4.0};
+    float dataG[] = {5.0, 6.0, 7.0, 8.0};
+
+    SimpleTensor<float> New({2, 2}, 2, dataF, true);
+    SimpleTensor<float> NewTwo({2, 2}, 2, dataG, true);
+
+    SimpleTensor<float> NewC = tiledMatmul(New, NewTwo);
+
+    NewC.backward();
+
+    auto gradNew = New.toHostGrad();
+    auto gradNewTwo = NewTwo.toHostGrad();
+
+
+    printf("grad_New (expected 11, 15, 11, 15):\n");
+    for (int i = 0; i < 4; i++) printf("%.2f ", gradNew[i]);
+    printf("\n");
+
+    printf("grad_NewTwo (expected 4, 4, 6, 6):\n");
+    for (int i = 0; i < 4; i++) printf("%.2f ", gradNewTwo[i]);
+    printf("\n");
+
+    float data1337[] = {1.0, 2.0, 3.0, 4.0};
+    float data4829[] = {5.0, 6.0, 7.0, 8.0};
+
+    SimpleTensor<float> t7291({2,2}, 2, data1337, true);
+    SimpleTensor<float> t5836({2,2}, 2, data4829, true);
+
+    SimpleTensor<float> t9472 = tiledMatmul(t7291, t5836);
+    SimpleTensor<float> t2651 = reduceOp(t9472, ReduceOp::SUM);
+
+    t2651.backward();
+
+    auto g3847 = t7291.toHostGrad();
+    auto g6194 = t5836.toHostGrad();
+
+    printf("grad_A:\n");
+    for (int i = 0; i < 4; i++) printf("%.2f ", g3847[i]);
+    printf("\ngrad_B:\n");
+    for (int i = 0; i < 4; i++) printf("%.2f ", g6194[i]);
 
     return 0;
 }

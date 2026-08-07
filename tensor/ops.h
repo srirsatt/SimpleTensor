@@ -38,3 +38,12 @@ __global__ void tiledMatmulKernel(T* a, T* b, T* output, int N, int M, int K);
 
 template <typename T>
 SimpleTensor<T> tiledMatmul(SimpleTensor<T> &a, SimpleTensor<T> &b);
+
+template <typename T>
+__global__ void reluForwardKernel(T* input, T* output, int size);
+
+template <typename T>
+__global__ void reluBackwardKernel(T* gradInput, T* gradOutput, T* input, int size);
+
+template <typename T>
+SimpleTensor<T> reluForward(SimpleTensor<T> &a);

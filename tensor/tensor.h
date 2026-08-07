@@ -38,7 +38,7 @@ class SimpleTensor {
         int getSize();
         bool getRequiresGrad();
         void backward(); // backward pass for autograd
-        std::function<void()> backward_; // backward pass recursive helper - calculates actual gradient values and recursions
+        std::function<void()> backward_; // backward pass recursive helper - calculates actual gradient values and recursion
         
 
 

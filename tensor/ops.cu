@@ -272,15 +272,50 @@ __global__ void reduceKernel(T* input, T* output, int N, ReduceOp operation) {
 }
 
 template <typename T>
+__global__ void accumulateGradScalar(T* grad, T* incomingScalar, int size) {
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (i < size) {
+        grad[i] += incomingScalar[0];
+    }
+}
+
+
+template <typename T>
 SimpleTensor<T> reduceOp(SimpleTensor<T> &a, ReduceOp operation) {
 
 
     int threads = 256;
     int blocks = (a.getSize() + threads - 1) / threads; // how many blocks i really need based on thread size
 
-    SimpleTensor<T> outputTensor({blocks}, 1); // tensor made from the same shape
+    bool needsGrad = a.getRequiresGrad();
 
-    reduceKernel<<<blocks, threads>>>(a.getBuffer(), outputTensor.getBuffer(), a.getSize(), operation);
+    SimpleTensor<T> partialSums({blocks}, 1, needsGrad); // tensor made from the same shape
+    
+
+    reduceKernel<<<blocks, threads>>>(a.getBuffer(), partialSums.getBuffer(), a.getSize(), operation);
+
+    cudaDeviceSynchronize(); // making sure partialSums has proper values before reduceKernel is called again
+
+    int blocks2 = 1;
+    SimpleTensor<T> outputTensor({1}, 1, needsGrad);
+    reduceKernel<<<blocks2, threads>>>(partialSums.getBuffer(), outputTensor.getBuffer(), blocks, operation);
+
+    // backward lamdbda
+
+    T* gradC = outputTensor.getGradBuffer();
+    int inputSize = a.getSize();
+
+    outputTensor.backward_ = [&a, gradC, inputSize]() {
+        if (a.getRequiresGrad()) {
+            int threads = 256;
+            int blocks = (inputSize + threads - 1) / threads;
+            accumulateGradScalar<<<blocks, threads>>>(a.getGradBuffer(), gradC, inputSize);
+        }
+        if (a.backward_) {
+            a.backward_();
+        }
+    };
 
     return outputTensor;
 }
@@ -379,6 +414,8 @@ SimpleTensor<T> tiledMatmul(SimpleTensor<T> &a, SimpleTensor<T> &b) {
         throw std::invalid_argument("two tensor shapes dont match for proper matmul");
     }
 
+    bool needsGrad = a.getRequiresGrad() || b.getRequiresGrad();
+
     // checking tensor dimensions for proper matmul - past 2d matmul will be explored later
 
     int M = a.getShape()[0];
@@ -388,7 +425,7 @@ SimpleTensor<T> tiledMatmul(SimpleTensor<T> &a, SimpleTensor<T> &b) {
     dim3 threads(TILE, TILE);
     dim3 blocks((N + TILE - 1) / TILE, (M + TILE - 1) / TILE);
 
-    SimpleTensor<T> outputTensor = SimpleTensor<T>(std::vector<int>{M, N}, a.getDimension()); // locks into an MxN 2D
+    SimpleTensor<T> outputTensor = SimpleTensor<T>(std::vector<int>{M, N}, a.getDimension(), needsGrad); // locks into an MxN 2D
     tiledMatmulKernel<<<blocks, threads>>>(a.getBuffer(), b.getBuffer(), outputTensor.getBuffer(), N, M, K);
 
     // autograd backprop matmul
@@ -438,7 +475,7 @@ SimpleTensor<T> tiledMatmul(SimpleTensor<T> &a, SimpleTensor<T> &b) {
             dim3 matThreads(16, 16);
             dim3 matBlocks((N + 15) / 16, (K + 15) / 16);
 
-            tiledMatmulKernel<<<matBlocks, matThreads>>>(gradC, aTranspose, tempB, N, K, M);
+            tiledMatmulKernel<<<matBlocks, matThreads>>>(aTranspose, gradC, tempB, N, K, M);
 
             int accThreads = 256;
             int accBlocks = (sizeB + accThreads - 1) / accThreads;
@@ -461,6 +498,56 @@ SimpleTensor<T> tiledMatmul(SimpleTensor<T> &a, SimpleTensor<T> &b) {
 
     return outputTensor;
 
+}
+
+template <typename T>
+__global__ void reluForwardKernel(T* input, T* output, int size) {
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (i < size) {
+        output[i] = max((T)0, input[i]);
+    }
+}
+
+template <typename T>
+__global__ void reluBackwardKernel(T* gradInput, T* gradOutput, T* input, int size) {
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (i < size) {
+        gradInput[i] += gradOutput[i] * (input[i] > 0 ? 1 : 0);
+    }
+}
+
+template <typename T>
+SimpleTensor<T> reluForward(SimpleTensor<T> &a) {
+    bool needsGrad = a.getRequiresGrad();
+
+    SimpleTensor<T> outputTensor(a.getShape(), a.getDimension(), needsGrad);
+
+    int threads = 256;
+    int blocks = (a.getSize() + threads - 1) / threads;
+
+    reluForwardKernel<<<blocks, threads>>>(a.getBuffer(), outputTensor.getBuffer(), a.getSize());
+
+    // backward lambda
+    T* gradC = outputTensor.getGradBuffer();
+    T* inputData = a.getBuffer();
+    int size = a.getSize();
+
+    outputTensor.backward_ = [&a, gradC, inputData, size]() {
+        if (a.getRequiresGrad()) {
+            int threads = 256;
+            int blocks = (size + threads - 1) / threads;
+            reluBackwardKernel<<<blocks, threads>>>(a.getGradBuffer(), gradC, inputData, size);
+        }
+
+        if (a.backward_) {
+            a.backward_();
+        }
+    };
+
+
+    return outputTensor;
 }
 
 
