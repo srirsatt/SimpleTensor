@@ -215,6 +215,10 @@ __global__ void reduceKernel(T* input, T* output, int N, ReduceOp operation) {
 
     __shared__ T sharedData[256];
 
+    // syncThreads fix
+
+    sharedData[threadIdx.x] = (i < N) ? input[i] : T(0);
+    __syncthreads();
 
     // now we need to load all the data from input into shared mem
 
@@ -224,7 +228,6 @@ __global__ void reduceKernel(T* input, T* output, int N, ReduceOp operation) {
     
         //sharedData[threadIdx.x] = input[i]; // per block thread index - so per block, this loads every thread with a "data point" from the dataBuf
 
-        __syncthreads();
 
         for (int stride = blockDim.x / 2; stride > 0; stride /= 2) {
             // block dim, remember, is the amount of threads in a block. move thru "half" of the array potential and add

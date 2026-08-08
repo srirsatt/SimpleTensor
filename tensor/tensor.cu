@@ -326,15 +326,6 @@ bool SimpleTensor<T>::getRequiresGrad() {
     return requiresGrad_;
 }
 
-template <typename T>
-__global__ void reluForwardKernel(T* input, T* output, int size) {
-    int i = blockIdx.x * blockDim.x + threadIdx.x;
-
-    if (i < size) {
-        output[i] = max((T)0, input[i]);
-    }
-}
-
 
 template class SimpleTensor<float>;
 template class SimpleTensor<double>;
