@@ -44,7 +44,7 @@ class SimpleTensor {
         SimpleTensor<T>& operator=(const SimpleTensor<T>& other);
         // move constructor
         SimpleTensor(SimpleTensor<T>&& other) noexcept;
-        SimpleTesnor<T>& operator=(SimpleTensor<T>&& other) noexcept;
+        SimpleTensor<T>& operator=(SimpleTensor<T>&& other) noexcept;
         
 
 

@@ -6,9 +6,9 @@
 #include <stdio.h>
 #include <iostream>
 
-#define CUDA_CHECK(call) {
-    cudaError_t err = call;
-    if (err != cudaSuccess) {
+#define CUDA_CHECK(call) { \
+    cudaError_t err = call; \
+    if (err != cudaSuccess) { \
         printf("CUDA error %s line %d: %s\n", __FILE__, __LINE__, cudaGetErrorString(err)); \
         exit(1); \
     } \
