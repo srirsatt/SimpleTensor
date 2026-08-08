@@ -326,6 +326,93 @@ bool SimpleTensor<T>::getRequiresGrad() {
     return requiresGrad_;
 }
 
+// move signatures implementation
+template <typename T>
+SimpleTensor<T>::SimpleTensor(const SimpleTensor<T>& other) {
+    dimension_ = other.dimension_;
+    size_ = other.size_;
+    shape_ = other.shape_;
+    stride_ = other.stride_;
+    requiresGrad_ = other.requiresGrad_;
+    backward_ = other.backward_;
+
+    cudaMalloc(&dataBuffer_, size_*sizeof(T));
+    cudaMemcpy(dataBuffer_, other.dataBuffer_, size_* sizeof(T), cudaMemcpyDeviceToDevice);
+
+    if (other.gradBuffer_) {
+        cudaMalloc(&gradBuffer_, size_ * sizeof(T));
+        cudaMemcpy(gradBuffer_, other.gradBuffer_, size_*sizeof(T), cudaMemcpyDeviceToDevice);
+    } else {
+        gradBuffer_ = nullptr;
+    }
+}
+
+template <typename T>
+SimpleTensor<T>& SimpleTensor<T>::operator=(const SimpleTensor<T>& other) {
+    if (this == &other) return *this;
+
+    cudaFree(dataBuffer_);
+    if (gradBuffer_) cudaFree(gradBuffer_);
+
+    dimension_ = other.dimension_;
+    size_ = other.size_;
+    shape_ = other.shape_;
+    stride_ = other.stride_;
+    requiresGrad_ = other.requiresGrad_;
+    backward_ = other.backward_;
+
+    cudaMalloc(&dataBuffer_, size_ * sizeof(T));
+    cudaMemcpy(dataBuffer_, other.dataBuffer_, size_ * sizeof(T), cudaMemcpyDeviceToDevice);
+
+    if (other.gradBuffer_) {
+        cudaMalloc(&gradBuffer_, size_ * sizeof(T));
+        cudaMemcpy(gradBuffer_, other.gradBuffer_, size_* sizeof(T), cudaMemcpyDeviceToDevice);
+    } else {
+        gradBuffer_ = nullptr;
+    }
+    return *this;
+}
+
+// move constructor
+template <typename T>
+SimpleTensor<T>::SimpleTensor(SimpleTensor<T>&& other) noexcept {
+    dimension_ = other.dimension_;
+    size_ = other.size_;
+    shape_ = std::move(other.shape_);
+    stride_ = std::move(other.stride_);
+    requiresGrad_ = other.requiresGrad_;
+    backward_ = std::move(other.backward_);
+    
+    dataBuffer_ = other.dataBuffer_;
+    gradBuffer_ = other.gradBuffer_;
+
+    other.dataBuffer_ = nullptr;
+    other.gradBuffer_ = nullptr;
+}
+
+// move assignment - with return to SimpleTensor pointer
+template <typename T>
+SimpleTensor<T>& SimpleTensor<T>::operator=(SimpleTensor<T>&& other) noexcept {
+    if (this == &other) return *this;
+
+    cudaFree(dataBuffer_);
+    if (gradBuffer_) cudaFree(gradBuffer_);
+
+    dimension_ = other.dimension_;
+    size_ = other.size_;
+    shape_ = std::move(other.shape_);
+    stride_ = std::move(other.stride_);
+    requiresGrad_ = other.requiresGrad_;
+
+    backward_ = std::move(other.backward_);
+    dataBuffer_ = other.dataBuffer_;
+    gradBuffer_ = other.gradBuffer_;
+    
+    other.gradBuffer_ = nullptr;
+    other.dataBuffer_ = nullptr;
+
+    return *this; 
+}
 
 template class SimpleTensor<float>;
 template class SimpleTensor<double>;

@@ -39,6 +39,12 @@ class SimpleTensor {
         bool getRequiresGrad();
         void backward(); // backward pass for autograd
         std::function<void()> backward_; // backward pass recursive helper - calculates actual gradient values and recursion
+        // deep copy signatures
+        SimpleTensor(const SimpleTensor<T>& other);
+        SimpleTensor<T>& operator=(const SimpleTensor<T>& other);
+        // move constructor
+        SimpleTensor(SimpleTensor<T>&& other) noexcept;
+        SimpleTesnor<T>& operator=(SimpleTensor<T>&& other) noexcept;
         
 
 
