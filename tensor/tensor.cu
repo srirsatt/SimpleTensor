@@ -19,6 +19,14 @@ getters & setters, of course!
 #include <vector>
 #include <stdexcept> // for exceptions
 
+#define CUDA_CHECK(call) {
+    cudaError_t err = call;
+    if (err != cudaSuccess) {
+        printf("CUDA error %s line %d: %s\n", __FILE__, __LINE__, cudaGetErrorString(err)); \
+        exit(1); \
+    } \
+}
+
 template <typename T>
 SimpleTensor<T>::SimpleTensor(std::vector<int> shape, int dimension, T* dataBuffer, bool requiresGrad) {
     // constructor
@@ -48,7 +56,7 @@ SimpleTensor<T>::SimpleTensor(std::vector<int> shape, int dimension, T* dataBuff
 
     if (requiresGrad == true) {
         T* g_buf;
-        cudaMalloc(&g_buf, size_*sizeof(T));
+        CUDA_CHECK(cudaMalloc(&g_buf, size_*sizeof(T)));
 
         cudaMemset(g_buf, 0, size_*sizeof(T));
 
@@ -61,10 +69,10 @@ SimpleTensor<T>::SimpleTensor(std::vector<int> shape, int dimension, T* dataBuff
 
     // cudaMalloc
     T* d_buf;
-    cudaMalloc(&d_buf, size_*sizeof(T));
+    CUDA_CHECK(cudaMalloc(&d_buf, size_*sizeof(T)));
 
     // cudaMemcpy
-    cudaMemcpy(d_buf, dataBuffer, size_*sizeof(T), cudaMemcpyHostToDevice); // CPU->GPU memcpy
+    CUDA_CHECK(cudaMemcpy(d_buf, dataBuffer, size_*sizeof(T), cudaMemcpyHostToDevice)); // CPU->GPU memcpy
 
     dataBuffer_ = d_buf;
 }
@@ -96,7 +104,7 @@ SimpleTensor<T>::SimpleTensor(std::vector<int> shape, int dimension, bool requir
 
     if (requiresGrad == true) {
         T* g_buf;
-        cudaMalloc(&g_buf, size_*sizeof(T));
+        CUDA_CHECK(cudaMalloc(&g_buf, size_*sizeof(T)));
 
         cudaMemset(g_buf, 0, size_*sizeof(T));
 
@@ -106,7 +114,7 @@ SimpleTensor<T>::SimpleTensor(std::vector<int> shape, int dimension, bool requir
     }
 
     T* d_buf;
-    cudaMalloc(&d_buf, size_*sizeof(T));
+    CUDA_CHECK(cudaMalloc(&d_buf, size_*sizeof(T)));
 
     cudaMemset(d_buf, 0, size_*sizeof(T)); // setting to all 0's, no need to have a Memcpy
 
@@ -207,9 +215,9 @@ void SimpleTensor<T>::setBuffer(T* dataBuffer, int size) {
 
 
     T* d_buf;
-    cudaMalloc(&d_buf, size_*sizeof(T));
+    CUDA_CHECK(cudaMalloc(&d_buf, size_*sizeof(T)));
 
-    cudaMemcpy(d_buf, dataBuffer, size_*sizeof(T), cudaMemcpyHostToDevice);
+    CUDA_CHECK(cudaMemcpy(d_buf, dataBuffer, size_*sizeof(T), cudaMemcpyHostToDevice));
 
     dataBuffer_ = d_buf;
 }
@@ -293,7 +301,7 @@ std::vector<T> SimpleTensor<T>::toHost() {
 
     dataBuffer.resize(size_);
 
-    cudaMemcpy(dataBuffer.data(), dataBuffer_, size_*sizeof(T), cudaMemcpyDeviceToHost);
+    CUDA_CHECK(cudaMemcpy(dataBuffer.data(), dataBuffer_, size_*sizeof(T), cudaMemcpyDeviceToHost));
 
 
     return dataBuffer;
@@ -306,7 +314,7 @@ std::vector<T> SimpleTensor<T>::toHostGrad() {
     }
 
     std::vector<T> result(size_);
-    cudaMemcpy(result.data(), gradBuffer_, size_ * sizeof(T), cudaMemcpyDeviceToHost);
+    CUDA_CHECK(cudaMemcpy(result.data(), gradBuffer_, size_ * sizeof(T), cudaMemcpyDeviceToHost));
 
     return result;
 }
@@ -336,12 +344,12 @@ SimpleTensor<T>::SimpleTensor(const SimpleTensor<T>& other) {
     requiresGrad_ = other.requiresGrad_;
     backward_ = other.backward_;
 
-    cudaMalloc(&dataBuffer_, size_*sizeof(T));
-    cudaMemcpy(dataBuffer_, other.dataBuffer_, size_* sizeof(T), cudaMemcpyDeviceToDevice);
+    CUDA_CHECK(cudaMalloc(&dataBuffer_, size_*sizeof(T)));
+    CUDA_CHECK(cudaMemcpy(dataBuffer_, other.dataBuffer_, size_* sizeof(T), cudaMemcpyDeviceToDevice));
 
     if (other.gradBuffer_) {
-        cudaMalloc(&gradBuffer_, size_ * sizeof(T));
-        cudaMemcpy(gradBuffer_, other.gradBuffer_, size_*sizeof(T), cudaMemcpyDeviceToDevice);
+        CUDA_CHECK(cudaMalloc(&gradBuffer_, size_ * sizeof(T)));
+        CUDA_CHECK(cudaMemcpy(gradBuffer_, other.gradBuffer_, size_*sizeof(T), cudaMemcpyDeviceToDevice));
     } else {
         gradBuffer_ = nullptr;
     }
@@ -361,12 +369,12 @@ SimpleTensor<T>& SimpleTensor<T>::operator=(const SimpleTensor<T>& other) {
     requiresGrad_ = other.requiresGrad_;
     backward_ = other.backward_;
 
-    cudaMalloc(&dataBuffer_, size_ * sizeof(T));
-    cudaMemcpy(dataBuffer_, other.dataBuffer_, size_ * sizeof(T), cudaMemcpyDeviceToDevice);
+    CUDA_CHECK(cudaMalloc(&dataBuffer_, size_ * sizeof(T)));
+    CUDA_CHECK(cudaMemcpy(dataBuffer_, other.dataBuffer_, size_ * sizeof(T), cudaMemcpyDeviceToDevice));
 
     if (other.gradBuffer_) {
-        cudaMalloc(&gradBuffer_, size_ * sizeof(T));
-        cudaMemcpy(gradBuffer_, other.gradBuffer_, size_* sizeof(T), cudaMemcpyDeviceToDevice);
+        CUDA_CHECK(cudaMalloc(&gradBuffer_, size_ * sizeof(T)));
+        CUDA_CHECK(cudaMemcpy(gradBuffer_, other.gradBuffer_, size_* sizeof(T), cudaMemcpyDeviceToDevice));
     } else {
         gradBuffer_ = nullptr;
     }

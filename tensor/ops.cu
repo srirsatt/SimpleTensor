@@ -6,6 +6,14 @@
 #include <stdio.h>
 #include <iostream>
 
+#define CUDA_CHECK(call) {
+    cudaError_t err = call;
+    if (err != cudaSuccess) {
+        printf("CUDA error %s line %d: %s\n", __FILE__, __LINE__, cudaGetErrorString(err)); \
+        exit(1); \
+    } \
+}
+
 
 template <typename T>
 __global__ void elementKernel(T* a, T* b, T* c, int N, ElementWiseOp operation) {
@@ -440,7 +448,7 @@ SimpleTensor<T> tiledMatmul(SimpleTensor<T> &a, SimpleTensor<T> &b) {
     outputTensor.backward_ = [&a, &b, gradC, M, N, K, sizeA, sizeB]() {
         if (a.getRequiresGrad()) {
             T* bTranspose;
-            cudaMalloc(&bTranspose, sizeB*sizeof(T));
+            CUDA_CHECK(cudaMalloc(&bTranspose, sizeB*sizeof(T)));
             dim3 threads(16, 16);
             dim3 blocks((b.getShape()[1] + 15) / 16, (b.getShape()[0] + 15) / 16);
             transposeMatrix<<<blocks, threads>>>(b.getBuffer(), bTranspose, b.getShape()[0], b.getShape()[1]);
@@ -448,7 +456,7 @@ SimpleTensor<T> tiledMatmul(SimpleTensor<T> &a, SimpleTensor<T> &b) {
             cudaDeviceSynchronize();
 
             T* tempA;
-            cudaMalloc(&tempA, sizeA * sizeof(T));
+            CUDA_CHECK(cudaMalloc(&tempA, sizeA * sizeof(T)));
 
             dim3 matThreads(16, 16);
             dim3 matBlocks((K + 15) / 16, (M + 15) / 16);
@@ -466,14 +474,14 @@ SimpleTensor<T> tiledMatmul(SimpleTensor<T> &a, SimpleTensor<T> &b) {
         }
         if (b.getRequiresGrad()) {
             T* aTranspose;
-            cudaMalloc(&aTranspose, sizeA*sizeof(T));
+            CUDA_CHECK(cudaMalloc(&aTranspose, sizeA*sizeof(T)));
             dim3 threads(16, 16);
             dim3 blocks((a.getShape()[1] + 15) / 16, (a.getShape()[0] + 15) / 16);
             transposeMatrix<<<blocks, threads>>>(a.getBuffer(), aTranspose, a.getShape()[0], a.getShape()[1]);
 
             cudaDeviceSynchronize();
             T* tempB;
-            cudaMalloc(&tempB, sizeB * sizeof(T));
+            CUDA_CHECK(cudaMalloc(&tempB, sizeB * sizeof(T)));
 
             dim3 matThreads(16, 16);
             dim3 matBlocks((N + 15) / 16, (K + 15) / 16);
