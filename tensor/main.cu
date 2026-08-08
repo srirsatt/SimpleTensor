@@ -3,8 +3,127 @@
 #include <cuda_runtime.h>
 #include <stdio.h>
 #include <iostream>
+#include <chrono>
 
 // test file for tensor.cu
+
+void benchmarkMatmul() {
+    int M = 1024, N = 1024, K = 1024;
+    int size = M * K;
+
+    float* hostA = new float[M * K];
+    float* hostB = new float[K * N];
+    for (int i = 0; i < M * K; i++) hostA[i] = (float)rand() / RAND_MAX;
+    for (int i = 0; i < K * N; i++) hostB[i] = (float)rand() / RAND_MAX;
+
+    SimpleTensor<float> A({M, K}, 2, hostA);
+    SimpleTensor<float> B({K, N}, 2, hostB);
+
+    // warmup
+    SimpleTensor<float> warmup = tiledMatmul(A, B);
+    cudaDeviceSynchronize();
+
+    // naive
+    auto start = std::chrono::high_resolution_clock::now();
+    for (int i = 0; i < 10; i++) {
+        SimpleTensor<float> C = naiveMatmul(A, B);
+        cudaDeviceSynchronize();
+    }
+    auto end = std::chrono::high_resolution_clock::now();
+    double naiveMs = std::chrono::duration<double, std::milli>(end - start).count() / 10;
+
+    // tiled
+    start = std::chrono::high_resolution_clock::now();
+    for (int i = 0; i < 10; i++) {
+        SimpleTensor<float> C = tiledMatmul(A, B);
+        cudaDeviceSynchronize();
+    }
+    end = std::chrono::high_resolution_clock::now();
+    double tiledMs = std::chrono::duration<double, std::milli>(end - start).count() / 10;
+
+    printf("=== Matmul Benchmark (1024x1024) ===\n");
+    printf("Naive:  %.2f ms\n", naiveMs);
+    printf("Tiled:  %.2f ms\n", tiledMs);
+    printf("Speedup: %.2fx\n", naiveMs / tiledMs);
+
+    delete[] hostA;
+    delete[] hostB;
+}
+
+void benchmarkAutograd() {
+    int M = 512, N = 512, K = 512;
+    float* hostA = new float[M * K];
+    float* hostB = new float[K * N];
+    for (int i = 0; i < M * K; i++) hostA[i] = (float)rand() / RAND_MAX;
+    for (int i = 0; i < K * N; i++) hostB[i] = (float)rand() / RAND_MAX;
+
+    SimpleTensor<float> A({M, K}, 2, hostA, true);
+    SimpleTensor<float> B({K, N}, 2, hostB, true);
+
+    auto start = std::chrono::high_resolution_clock::now();
+    SimpleTensor<float> C = tiledMatmul(A, B);
+    SimpleTensor<float> loss = reduceOp(C, ReduceOp::SUM);
+    loss.backward();
+    cudaDeviceSynchronize();
+    auto end = std::chrono::high_resolution_clock::now();
+    double ms = std::chrono::duration<double, std::milli>(end - start).count();
+
+    printf("=== Autograd Benchmark (512x512 matmul + backward) ===\n");
+    printf("Forward + Backward: %.2f ms\n", ms);
+
+    delete[] hostA;
+    delete[] hostB;
+}
+
+void benchmarkCPUvsGPU() {
+    int M = 1024, N = 1024, K = 1024;
+
+    float* hostA = new float[M * K];
+    float* hostB = new float[K * N];
+    float* hostC = new float[M * N];
+
+    for (int i = 0; i < M * K; i++) hostA[i] = (float)rand() / RAND_MAX;
+    for (int i = 0; i < K * N; i++) hostB[i] = (float)rand() / RAND_MAX;
+
+    // CPU matmul
+    auto start = std::chrono::high_resolution_clock::now();
+    for (int i = 0; i < M; i++) {
+        for (int j = 0; j < N; j++) {
+            float sum = 0;
+            for (int k = 0; k < K; k++) {
+                sum += hostA[i * K + k] * hostB[k * N + j];
+            }
+            hostC[i * N + j] = sum;
+        }
+    }
+    auto end = std::chrono::high_resolution_clock::now();
+    double cpuMs = std::chrono::duration<double, std::milli>(end - start).count();
+
+    // GPU tiled
+    SimpleTensor<float> A({M, K}, 2, hostA);
+    SimpleTensor<float> B({K, N}, 2, hostB);
+
+    // warmup
+    SimpleTensor<float> warmup = tiledMatmul(A, B);
+    cudaDeviceSynchronize();
+
+    start = std::chrono::high_resolution_clock::now();
+    for (int i = 0; i < 10; i++) {
+        SimpleTensor<float> C = tiledMatmul(A, B);
+        cudaDeviceSynchronize();
+    }
+    end = std::chrono::high_resolution_clock::now();
+    double gpuMs = std::chrono::duration<double, std::milli>(end - start).count() / 10;
+
+    printf("=== CPU vs GPU Benchmark (1024x1024) ===\n");
+    printf("CPU:     %.2f ms\n", cpuMs);
+    printf("GPU:     %.2f ms\n", gpuMs);
+    printf("Speedup: %.2fx\n", cpuMs / gpuMs);
+
+    delete[] hostA;
+    delete[] hostB;
+    delete[] hostC;
+}
 
 int main() {
     float data[] = {1, 2, 3, 4, 5, 6}; // 6 element vector, 
@@ -131,6 +250,10 @@ int main() {
     for (int i = 0; i < 4; i++) printf("%.2f ", g3847[i]);
     printf("\ngrad_B:\n");
     for (int i = 0; i < 4; i++) printf("%.2f ", g6194[i]);
+
+    benchmarkMatmul();
+    benchmarkAutograd();
+    benchmarkCPUvsGPU();
 
     return 0;
 }

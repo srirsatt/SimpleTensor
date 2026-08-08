@@ -461,7 +461,7 @@ SimpleTensor<T> tiledMatmul(SimpleTensor<T> &a, SimpleTensor<T> &b) {
             dim3 matThreads(16, 16);
             dim3 matBlocks((K + 15) / 16, (M + 15) / 16);
 
-            tiledMatmulKernel<<<matBlocks, matThreads>>>(gradC, bTranspose, tempA, N, M, K);
+            tiledMatmulKernel<<<matBlocks, matThreads>>>(gradC, bTranspose, tempA, K, M, N);
             
             int accThreads = 256;
             int accBlocks = (sizeA + accThreads - 1) / accThreads;
